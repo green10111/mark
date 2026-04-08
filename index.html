@@ -110,7 +110,7 @@
     </div>
 
     <button id="processBtn" class="btn-main">⚙️ 2. ОБРАБОТАТЬ ВСЕ</button>
-    <button id="shareBtn" class="btn-main btn-share hidden">📤 ОТПРАВИТЬ В VIBER</button>
+    <button id="shareBtn" class="btn-main btn-share hidden">📤 ПОДЕЛИТЬСЯ</button>
     
     <div id="glr"></div>
 </div>
@@ -119,7 +119,17 @@
     const KEY_TPL = 'pm_tpls_v7';
     const KEY_CFG = 'pm_config_v7';
     
-    let templates = JSON.parse(localStorage.getItem(KEY_TPL)) || ["Объект: "];
+    let templates = JSON.parse(localStorage.getItem(KEY_TPL)) || [
+    "Sikorskiego 1/Przemyslowa 70",
+    "Podgórna 2/Al.Marcinkowskiego 14",
+    "Strelecka 8",
+    "Szamotulska 65a",
+    "Szkolna 9/ Wrocławska 12",
+    "Orzechowa 1-5",
+    "Kasztanowa 35-39",
+    "Chaliszewo 64",
+    "Sikorskiego 11-11а"
+];
     let cfg = JSON.parse(localStorage.getItem(KEY_CFG)) || { mode: 'overlay', fSize: 8, oSize: 5, c1: '#ffffff', c2: '#000000', pos: 'bc', text: '' };
     
     let firstBitmap = null;
@@ -247,7 +257,7 @@
             bmp.close();
         }
 
-        DOM.processBtn.innerText = 'ГОТОВО ✅';
+        DOM.processBtn.innerText = 'ОБРАБОТАТЬ СНОВА ♻️';
         DOM.shareBtn.classList.remove('hidden');
     };
 

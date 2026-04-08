@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PhotoMark v7 (Download & Share)</title>
+    <style>
+        :root { --primary: #2563eb; --success: #059669; --bg: #f3f4f6; --card: #ffffff; --text: #1f2937; --border: #e5e7eb; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; padding-bottom: 50px; }
+        .app-container { max-width: 700px; margin: 0 auto; }
+        
+        .preview-pane { background: #000; border-radius: 12px; margin-bottom: 15px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; min-height: 200px; border: 2px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        #previewCanvas { max-width: 100%; max-height: 70vh; display: block; }
+        .no-photo { color: #9ca3af; position: absolute; font-size: 14px; text-align: center; }
+
+        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid var(--border); }
+        h2 { margin: 0 0 10px 0; font-size: 0.85rem; color: var(--primary); text-transform: uppercase; }
+        
+        .input-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+        label { font-size: 0.75rem; font-weight: 700; color: #6b7280; }
+        input[type="text"], select, button, .file-label { padding: 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 16px; width: 100%; box-sizing: border-box; }
+        
+        .file-label { background: var(--primary); color: white; text-align: center; cursor: pointer; display: block; font-weight: bold; border: none; }
+        input[type="file"] { display: none; }
+        
+        .btn-main { background: var(--success); color: white; border: none; padding: 16px; font-weight: bold; width: 100%; border-radius: 8px; cursor: pointer; margin-top: 10px; font-size: 16px; }
+        .btn-share { background: #8b5cf6; margin-top: 8px; }
+        
+        .slider-row { display: flex; align-items: center; gap: 10px; background: #f9fafb; padding: 8px; border-radius: 8px; }
+        .val-badge { min-width: 40px; font-size: 12px; font-weight: bold; color: var(--primary); text-align: right; }
+        
+        .color-row { display: flex; gap: 10px; }
+        input[type="color"] { border: none; width: 40px; height: 40px; cursor: pointer; background: none; }
+        
+        .pos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 100px; margin: 0 auto; }
+        .pos-dot { height: 30px; border: 1px solid #d1d5db; background: #f9fafb; cursor: pointer; border-radius: 4px; }
+        .pos-dot.active { background: var(--primary); border-color: var(--primary); }
+        
+        #glr { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-top: 20px; }
+        .glr-item { background: white; padding: 6px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 5px; }
+        .glr-item img { width: 100%; border-radius: 4px; }
+        .glr-item button { padding: 6px; font-size: 11px; cursor: pointer; background: #f3f4f6; border: 1px solid #ddd; border-radius: 4px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="preview-pane card">
+        <canvas id="previewCanvas"></canvas>
+        <div class="no-photo" id="noPhotoMsg">📷 Выберите фото для работы</div>
+    </div>
+
+    <div class="card">
+        <label for="imgInp" class="file-label">📥 1. ВЫБРАТЬ ФОТО</label>
+        <input type="file" id="imgInp" accept="image/*" multiple>
+    </div>
+
+    <div class="card">
+        <h2>Текст</h2>
+        <div class="input-group">
+            <select id="tplSel"></select>
+            <div style="display:flex; gap:5px">
+                <input type="text" id="mTxt" placeholder="Адрес или текст...">
+                <button onclick="addCurrentDate()" style="width:auto; padding:0 10px; font-size:12px">📅</button>
+            </div>
+            <div style="display:flex; gap:5px; margin-top:5px">
+                <button onclick="saveTpl()" style="font-size:12px">Сохранить</button>
+                <button onclick="delTpl()" style="font-size:12px; color:red; background:#fee2e2">Удалить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
+            <div class="input-group">
+                <label>Режим</label>
+                <select id="mode">
+                    <option value="overlay">Наложение</option>
+                    <option value="extend">Плашка</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Цвета</label>
+                <div class="color-row">
+                    <input type="color" id="c1" value="#ffffff">
+                    <input type="color" id="c2" value="#000000">
+                </div>
+            </div>
+        </div>
+        <div class="input-group">
+            <label>Шрифт / Обводка</label>
+            <div class="slider-row" style="margin-bottom:5px">
+                <input type="range" id="fSize" min="1" max="30" step="0.1" value="8">
+                <span id="fSizeV" class="val-badge">8%</span>
+            </div>
+            <div class="slider-row" id="outRow">
+                <input type="range" id="oSize" min="0" max="20" step="0.5" value="5">
+                <span id="oSizeV" class="val-badge">5%</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" id="posCard">
+        <div class="pos-grid" id="pGrid">
+            <div class="pos-dot" data-p="tl"></div><div class="pos-dot" data-p="tc"></div><div class="pos-dot" data-p="tr"></div>
+            <div class="pos-dot" data-p="ml"></div><div class="pos-dot" data-p="mc"></div><div class="pos-dot" data-p="mr"></div>
+            <div class="pos-dot" data-p="bl"></div><div class="pos-dot" data-p="bc"></div><div class="pos-dot" data-p="br"></div>
+        </div>
+    </div>
+
+    <button id="processBtn" class="btn-main">⚙️ 2. ОБРАБОТАТЬ ВСЕ</button>
+    <button id="shareBtn" class="btn-main btn-share hidden">📤 ОТПРАВИТЬ В VIBER</button>
+    
+    <div id="glr"></div>
+</div>
+
+<script>
+    const KEY_TPL = 'pm_tpls_v7';
+    const KEY_CFG = 'pm_config_v7';
+    
+    let templates = JSON.parse(localStorage.getItem(KEY_TPL)) || ["Объект: "];
+    let cfg = JSON.parse(localStorage.getItem(KEY_CFG)) || { mode: 'overlay', fSize: 8, oSize: 5, c1: '#ffffff', c2: '#000000', pos: 'bc', text: '' };
+    
+    let firstBitmap = null;
+    let allFiles = [];
+    let readyFilesData = []; 
+
+    const DOM = {
+        imgInp: document.getElementById('imgInp'),
+        preCanv: document.getElementById('previewCanvas'),
+        tplSel: document.getElementById('tplSel'),
+        txt: document.getElementById('mTxt'),
+        mode: document.getElementById('mode'),
+        fSize: document.getElementById('fSize'),
+        oSize: document.getElementById('oSize'),
+        c1: document.getElementById('c1'),
+        c2: document.getElementById('c2'),
+        dots: document.querySelectorAll('.pos-dot'),
+        glr: document.getElementById('glr'),
+        processBtn: document.getElementById('processBtn'),
+        shareBtn: document.getElementById('shareBtn')
+    };
+
+    function init() {
+        DOM.mode.value = cfg.mode || 'overlay';
+        DOM.fSize.value = cfg.fSize || 8; 
+        DOM.oSize.value = cfg.oSize || 5;
+        DOM.c1.value = cfg.c1 || '#ffffff'; 
+        DOM.c2.value = cfg.c2 || '#000000';
+        DOM.txt.value = cfg.text || '';
+        updatePosDots(cfg.pos || 'bc');
+        initTpls();
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('fSizeV').textContent = DOM.fSize.value + '%';
+        document.getElementById('oSizeV').textContent = DOM.oSize.value + '%';
+        document.getElementById('outRow').classList.toggle('hidden', DOM.mode.value === 'extend');
+        document.getElementById('posCard').classList.toggle('hidden', DOM.mode.value === 'extend');
+        cfg = {...cfg, mode: DOM.mode.value, fSize: DOM.fSize.value, oSize: DOM.oSize.value, c1: DOM.c1.value, c2: DOM.c2.value, text: DOM.txt.value};
+        localStorage.setItem(KEY_CFG, JSON.stringify(cfg));
+        drawPreview();
+    }
+
+    function initTpls() {
+        DOM.tplSel.innerHTML = '<option value="">-- Шаблоны --</option>';
+        templates.forEach(t => { let o = document.createElement('option'); o.value = o.textContent = t; DOM.tplSel.appendChild(o); });
+    }
+
+    window.addCurrentDate = () => {
+        const d = new Date();
+        const dateStr = d.toLocaleDateString('ru-RU');
+        DOM.txt.value += (DOM.txt.value ? ' ' : '') + dateStr;
+        updateUI();
+    };
+
+    window.saveTpl = () => { let v = DOM.txt.value; if(v && !templates.includes(v)) { templates.push(v); localStorage.setItem(KEY_TPL, JSON.stringify(templates)); initTpls(); }};
+    window.delTpl = () => { templates = templates.filter(t => t !== DOM.tplSel.value); localStorage.setItem(KEY_TPL, JSON.stringify(templates)); initTpls(); DOM.txt.value = ''; updateUI(); };
+    DOM.tplSel.onchange = () => { if(DOM.tplSel.value) { DOM.txt.value = DOM.tplSel.value; updateUI(); }};
+
+    function updatePosDots(p) { cfg.pos = p; DOM.dots.forEach(d => d.classList.toggle('active', d.dataset.p === p)); }
+    DOM.dots.forEach(d => d.onclick = () => { updatePosDots(d.dataset.p); updateUI(); });
+
+    DOM.imgInp.onchange = async () => {
+        if(!DOM.imgInp.files.length) return;
+        allFiles = Array.from(DOM.imgInp.files);
+        firstBitmap = await createImageBitmap(allFiles[0]);
+        document.getElementById('noPhotoMsg').classList.add('hidden');
+        drawPreview();
+    };
+
+    function drawImage(img, config, canvas) {
+        const ctx = canvas.getContext('2d');
+        const w = img.width, h = img.height;
+        const fs = Math.max(12, (w * config.fSize) / 100);
+        const os = (fs * config.oSize) / 100;
+        const pad = fs * 0.7;
+
+        if(config.mode === 'extend') {
+            const bh = fs + pad * 2;
+            canvas.width = w; canvas.height = h + bh;
+            ctx.fillStyle = config.c2; ctx.fillRect(0, h, w, bh);
+            ctx.drawImage(img, 0, 0);
+            ctx.fillStyle = config.c1; ctx.font = `bold ${fs}px sans-serif`;
+            ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillText(config.text, w/2, h + bh/2);
+        } else {
+            canvas.width = w; canvas.height = h;
+            ctx.drawImage(img, 0, 0);
+            ctx.font = `bold ${fs}px sans-serif`;
+            ctx.fillStyle = config.c1; ctx.strokeStyle = config.c2; ctx.lineWidth = os; ctx.lineJoin = "round";
+            const v = config.pos[0], hh = config.pos[1];
+            let x, y;
+            if(v==='t'){ y=pad; ctx.textBaseline="top";} else if(v==='m'){ y=h/2; ctx.textBaseline="middle";} else { y=h-pad; ctx.textBaseline="bottom";}
+            if(hh==='l'){ x=pad; ctx.textAlign="left";} else if(hh==='c'){ x=w/2; ctx.textAlign="center";} else { x=w-pad; ctx.textAlign="right";}
+            if(os > 0) ctx.strokeText(config.text, x, y);
+            ctx.fillText(config.text, x, y);
+        }
+    }
+
+    function drawPreview() { if(firstBitmap) drawImage(firstBitmap, cfg, DOM.preCanv); }
+
+    DOM.processBtn.onclick = async () => {
+        if(!allFiles.length) return alert('Выберите фото');
+        DOM.processBtn.innerText = 'Обработка...';
+        DOM.glr.innerHTML = '';
+        readyFilesData = [];
+
+        for(let file of allFiles) {
+            const bmp = await createImageBitmap(file);
+            const canv = document.createElement('canvas');
+            drawImage(bmp, cfg, canv);
+            
+            const blob = await new Promise(r => canv.toBlob(r, 'image/jpeg', 0.88));
+            const url = URL.createObjectURL(blob);
+            const fileName = `ready_${file.name}`;
+            
+            readyFilesData.push({ blob, url, name: fileName });
+
+            const div = document.createElement('div');
+            div.className = 'glr-item';
+            div.innerHTML = `<img src="${url}">
+                <button onclick="downloadOne('${url}', '${fileName}')">Скачать ↓</button>`;
+            DOM.glr.appendChild(div);
+            bmp.close();
+        }
+
+        DOM.processBtn.innerText = 'ГОТОВО ✅';
+        DOM.shareBtn.classList.remove('hidden');
+    };
+
+    window.downloadOne = (url, name) => {
+        const a = document.createElement('a');
+        a.href = url; a.download = name; a.click();
+    };
+
+    DOM.shareBtn.onclick = async () => {
+        const filesToShare = readyFilesData.map(f => new File([f.blob], f.name, { type: 'image/jpeg' }));
+        if(navigator.canShare && navigator.canShare({ files: filesToShare })) {
+            try {
+                await navigator.share({ files: filesToShare, title: 'Отчет' });
+            } catch (err) { console.log('Share canceled'); }
+        } else {
+            alert('Браузер не поддерживает Share API для файлов. Скачайте фото кнопками ниже.');
+        }
+    };
+
+    [DOM.mode, DOM.fSize, DOM.oSize, DOM.c1, DOM.c2, DOM.txt].forEach(el => el.oninput = updateUI);
+    init();
+</script>
+</body>
+</html>
